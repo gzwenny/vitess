@@ -123,13 +123,14 @@ func (s *Scheduler) processClusterOperation(clusterOp *ClusterOperationInstance)
 				break
 			}
 
+			taskProto.State = pb.TaskState_RUNNING
 			log.Infof("Task: %v (%v/%v) running. Details: %v", taskProto.Name, clusterOp.Id, taskProto.Id, taskProto)
-			newTaskContainers, output, err := task.run(taskProto.Parameters)
-			log.Infof("Task: %v (%v/%v) finished. newTaskContainers: %v, output: %v, error: %v", taskProto.Name, clusterOp.Id, taskProto.Id, newTaskContainers, output, err)
+			newTaskContainers, output, errRun := task.run(taskProto.Parameters)
+			log.Infof("Task: %v (%v/%v) finished. newTaskContainers: %v, output: %v, error: %v", taskProto.Name, clusterOp.Id, taskProto.Id, newTaskContainers, output, errRun)
 
-			if err != nil {
-				MarkTaskFailed(taskProto, err)
-				lastTaskError = err.Error()
+			if errRun != nil {
+				MarkTaskFailed(taskProto, errRun)
+				lastTaskError = errRun.Error()
 				break
 			}
 			MarkTaskSucceeded(taskProto, output)
