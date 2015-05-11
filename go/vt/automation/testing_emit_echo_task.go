@@ -17,3 +17,7 @@ func (t *TestingEmitEchoTask) run(parameters map[string]string) (newTasks []*pb.
 		NewTaskContainerWithSingleTask("TestingEchoTask", parameters),
 	}, "emitted TestingEchoTask", nil
 }
+
+func (t *TestingEmitEchoTask) requiredParameters() []string {
+	return []string{}
+}

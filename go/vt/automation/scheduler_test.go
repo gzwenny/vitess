@@ -41,7 +41,7 @@ func enqueueClusterOperationAndCheckOutput(t *testing.T, taskName string, expect
 	enqueueRequest := &pb.EnqueueClusterOperationRequest{
 		Name: taskName,
 		Parameters: map[string]string{
-			"input": expectedOutput,
+			"echo_text": expectedOutput,
 		},
 	}
 	enqueueResponse, err := scheduler.EnqueueClusterOperation(context.TODO(), enqueueRequest)
@@ -68,6 +68,28 @@ func enqueueClusterOperationAndCheckOutput(t *testing.T, taskName string, expect
 			t.Logf("Waiting for clusterOp: %v", getDetailsResponse.ClusterOp)
 			time.Sleep(5 * time.Millisecond)
 		}
+	}
+
+	scheduler.ShutdownAndWait()
+}
+
+func TestEnqueueFailsDueToMissingParameter(t *testing.T) {
+	scheduler, err := NewScheduler()
+	if err != nil {
+		t.Fatalf("Failed to create scheduler: %v", err)
+	}
+
+	scheduler.Run()
+
+	enqueueRequest := &pb.EnqueueClusterOperationRequest{
+		Name: "TestingEchoTask",
+		Parameters: map[string]string{
+			"unrelevant-parameter": "value",
+		},
+	}
+	enqueueResponse, err := scheduler.EnqueueClusterOperation(context.TODO(), enqueueRequest)
+	if err == nil {
+		t.Fatalf("Scheduler should have failed to start cluster operation because not all required parameters were provided. Request: %v Error: %v Response: %v", enqueueRequest, err, enqueueResponse)
 	}
 
 	scheduler.ShutdownAndWait()

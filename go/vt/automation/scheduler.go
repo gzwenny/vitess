@@ -136,6 +136,19 @@ func (s *Scheduler) processClusterOperation(clusterOp *ClusterOperationInstance)
 			MarkTaskSucceeded(taskProto, output)
 
 			if newTaskContainers != nil {
+				// Make sure all new tasks do not miss any required parameters.
+				for _, newTaskContainer := range newTaskContainers {
+					for _, newTaskProto := range newTaskContainer.ParallelTasks {
+						errCheckParams := s.checkMissingRequiredParameters(newTaskProto)
+						if errCheckParams != nil {
+							log.Errorf("Task: %v (%v/%v) emitted a new task which did not fill in all required parameters. Error: %v Details: %v", taskProto.Name, clusterOp.Id, taskProto.Id, errCheckParams, newTaskProto)
+							MarkTaskFailed(taskProto, errCheckParams)
+							lastTaskError = errCheckParams.Error()
+							break
+						}
+					}
+				}
+
 				clusterOp.InsertTaskContainers(newTaskContainers, i+1)
 				log.Infof("ClusterOperation: %v %d new task containers added by %v (%v/%v). Updated ClusterOperation: %v",
 					clusterOp.Id, len(newTaskContainers), taskProto.Name, clusterOp.Id, taskProto.Id, clusterOp)
@@ -177,6 +190,23 @@ func (s *Scheduler) createTaskInstance(taskName string) (Task, error) {
 	}
 }
 
+// checkClusterOperationForMissingRequiredParameters returns an error if not all required parameters are provided in "taskProto.parameters".
+func (s *Scheduler) checkMissingRequiredParameters(taskProto *pb.Task) error {
+	// Create an instance of the task to find out the required parameters.
+	task, err := s.createTaskInstance(taskProto.Name)
+	if err != nil {
+		log.Errorf("Task: %v could not be instantiated for finding out its required parameters. Error: %v Details: %v", taskProto.Name, err, taskProto)
+		return err
+	}
+
+	for _, requiredParameter := range task.requiredParameters() {
+		if _, ok := taskProto.Parameters[requiredParameter]; !ok {
+			return fmt.Errorf("Parameter %v is required, but not provided.", requiredParameter)
+		}
+	}
+	return nil
+}
+
 // EnqueueClusterOperation can be used to start a new cluster operation.
 func (s *Scheduler) EnqueueClusterOperation(ctx context.Context, req *pb.EnqueueClusterOperationRequest) (*pb.EnqueueClusterOperationResponse, error) {
 	s.mu.Lock()
@@ -193,6 +223,10 @@ func (s *Scheduler) EnqueueClusterOperation(ctx context.Context, req *pb.Enqueue
 	clusterOpID := s.idGenerator.GetNextID()
 	taskIDGenerator := IDGenerator{}
 	initialTask := NewTaskContainerWithSingleTask(req.Name, req.Parameters)
+	err := s.checkMissingRequiredParameters(initialTask.ParallelTasks[0])
+	if err != nil {
+		return nil, err
+	}
 	clusterOp := NewClusterOperationInstance(clusterOpID, initialTask, &taskIDGenerator)
 
 	s.muOpList.Lock()

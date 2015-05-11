@@ -9,8 +9,12 @@ import (
 )
 
 // Task implementations can be executed by the scheduler.
-// Tasks can emit new tasks by returning them. The new tasks will be added
-// to the execution graph directly after this task.
 type Task interface {
+	// run executes the task using the key/values from parameters.
+	// "newTaskContainers" contains new tasks which the task can emit. They'll be inserted in the cluster operation directly after this task. It may be "nil".
+	// "output" may be empty. It contains any text which maybe must e.g. to debug the task or show it in the UI.
 	run(parameters map[string]string) (newTaskContainers []*pb.TaskContainer, output string, err error)
+
+	// requiredParameters() returns a list of parameter keys which must be provided as input for run().
+	requiredParameters() []string
 }

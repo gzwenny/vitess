@@ -30,3 +30,7 @@ func (t *VtctlTask) run(parameters map[string]string) ([]*pb.TaskContainer, stri
 
 	return nil, out.String(), err
 }
+
+func (t *VtctlTask) requiredParameters() []string {
+	return []string{"command"}
+}

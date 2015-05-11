@@ -126,3 +126,7 @@ func (t *ReshardingTask) run(parameters map[string]string) ([]*pb.TaskContainer,
 
 	return newTasks, "", nil
 }
+
+func (t *ReshardingTask) requiredParameters() []string {
+	return []string{"source_shard_list", "source_shard_rdonly_list", "dest_shard_list"}
+}

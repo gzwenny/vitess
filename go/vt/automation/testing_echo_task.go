@@ -18,3 +18,7 @@ func (t *TestingEchoTask) run(parameters map[string]string) (newTasks []*pb.Task
 	}
 	return
 }
+
+func (t *TestingEchoTask) requiredParameters() []string {
+	return []string{"echo_text"}
+}

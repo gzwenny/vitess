@@ -116,3 +116,7 @@ outer:
 
 	return nil, "", nil
 }
+
+func (t *VtworkerTask) requiredParameters() []string {
+	return []string{"command", "keyspace", "shard"}
+}
