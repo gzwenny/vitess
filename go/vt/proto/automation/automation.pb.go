@@ -93,7 +93,7 @@ type ClusterOperation struct {
 	SerialTasks []*TaskContainer `protobuf:"bytes,2,rep,name=serial_tasks" json:"serial_tasks,omitempty"`
 	// Cached value. This has to be re-evaluated e.g. after a checkpoint load because running tasks may have already finished.
 	State ClusterOperationState `protobuf:"varint,3,opt,name=state,enum=automation.ClusterOperationState" json:"state,omitempty"`
-	// Set after state advanced to CLUSTER_OPERATION_DONE. If empty, the task did succeed. Cached value, see state above.
+	// Error of the first task which failed. Set after state advanced to CLUSTER_OPERATION_DONE. If empty, all tasks succeeded. Cached value, see state above.
 	Error string `protobuf:"bytes,4,opt,name=error" json:"error,omitempty"`
 }
 
@@ -126,6 +126,7 @@ func (m *TaskContainer) GetParallelTasks() []*Task {
 	return nil
 }
 
+// Task represents a specific task which should be automatically executed.
 type Task struct {
 	// Task specification.
 	Name       string            `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
@@ -133,9 +134,10 @@ type Task struct {
 	// Runtime data.
 	Id    string    `protobuf:"bytes,3,opt,name=id" json:"id,omitempty"`
 	State TaskState `protobuf:"varint,4,opt,name=state,enum=automation.TaskState" json:"state,omitempty"`
-	// Set after state advanced to DONE. If empty, the task did succeed.
+	// Set after state advanced to DONE.
 	Output string `protobuf:"bytes,5,opt,name=output" json:"output,omitempty"`
-	Error  string `protobuf:"bytes,6,opt,name=error" json:"error,omitempty"`
+	// Set after state advanced to DONE. If empty, the task did succeed.
+	Error string `protobuf:"bytes,6,opt,name=error" json:"error,omitempty"`
 }
 
 func (m *Task) Reset()         { *m = Task{} }
@@ -221,9 +223,12 @@ func init() {
 // Client API for Automation service
 
 type AutomationClient interface {
+	// Start a cluster operation.
 	EnqueueClusterOperation(ctx context.Context, in *EnqueueClusterOperationRequest, opts ...grpc.CallOption) (*EnqueueClusterOperationResponse, error)
+	// Get the current state of a given active cluster operation.
 	// TODO(mberlin): Polling this is bad. Implement a subscribe mechanism to wait for changes?
 	GetClusterOperationState(ctx context.Context, in *GetClusterOperationStateRequest, opts ...grpc.CallOption) (*GetClusterOperationStateResponse, error)
+	// Get all details of an active cluster operation.
 	GetClusterOperationDetails(ctx context.Context, in *GetClusterOperationDetailsRequest, opts ...grpc.CallOption) (*GetClusterOperationDetailsResponse, error)
 }
 
@@ -265,9 +270,12 @@ func (c *automationClient) GetClusterOperationDetails(ctx context.Context, in *G
 // Server API for Automation service
 
 type AutomationServer interface {
+	// Start a cluster operation.
 	EnqueueClusterOperation(context.Context, *EnqueueClusterOperationRequest) (*EnqueueClusterOperationResponse, error)
+	// Get the current state of a given active cluster operation.
 	// TODO(mberlin): Polling this is bad. Implement a subscribe mechanism to wait for changes?
 	GetClusterOperationState(context.Context, *GetClusterOperationStateRequest) (*GetClusterOperationStateResponse, error)
+	// Get all details of an active cluster operation.
 	GetClusterOperationDetails(context.Context, *GetClusterOperationDetailsRequest) (*GetClusterOperationDetailsResponse, error)
 }
 
@@ -275,9 +283,9 @@ func RegisterAutomationServer(s *grpc.Server, srv AutomationServer) {
 	s.RegisterService(&_Automation_serviceDesc, srv)
 }
 
-func _Automation_EnqueueClusterOperation_Handler(srv interface{}, ctx context.Context, buf []byte) (proto.Message, error) {
+func _Automation_EnqueueClusterOperation_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
 	in := new(EnqueueClusterOperationRequest)
-	if err := proto.Unmarshal(buf, in); err != nil {
+	if err := codec.Unmarshal(buf, in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(AutomationServer).EnqueueClusterOperation(ctx, in)
@@ -287,9 +295,9 @@ func _Automation_EnqueueClusterOperation_Handler(srv interface{}, ctx context.Co
 	return out, nil
 }
 
-func _Automation_GetClusterOperationState_Handler(srv interface{}, ctx context.Context, buf []byte) (proto.Message, error) {
+func _Automation_GetClusterOperationState_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
 	in := new(GetClusterOperationStateRequest)
-	if err := proto.Unmarshal(buf, in); err != nil {
+	if err := codec.Unmarshal(buf, in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(AutomationServer).GetClusterOperationState(ctx, in)
@@ -299,9 +307,9 @@ func _Automation_GetClusterOperationState_Handler(srv interface{}, ctx context.C
 	return out, nil
 }
 
-func _Automation_GetClusterOperationDetails_Handler(srv interface{}, ctx context.Context, buf []byte) (proto.Message, error) {
+func _Automation_GetClusterOperationDetails_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
 	in := new(GetClusterOperationDetailsRequest)
-	if err := proto.Unmarshal(buf, in); err != nil {
+	if err := codec.Unmarshal(buf, in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(AutomationServer).GetClusterOperationDetails(ctx, in)

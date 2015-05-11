@@ -47,8 +47,9 @@ message Task {
   // Runtime data.
   string id = 3;
   TaskState state = 4;
-  // Set after state advanced to DONE. If empty, the task did succeed.
+  // Set after state advanced to DONE.
   string output = 5;
+  // Set after state advanced to DONE. If empty, the task did succeed.
   string error = 6;
 }
 
