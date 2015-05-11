@@ -26,7 +26,6 @@ message ClusterOperation {
 
 // TaskContainer holds one or more task which may be executed in parallel.
 // "concurrency", if > 0, limits the amount of concurrently executed tasks.
-// TODO(mberlin): Find a better name. "TaskGroup"?
 message TaskContainer {
   repeated Task parallel_tasks = 1;
   int32 concurrency = 2;
