@@ -13,6 +13,15 @@ import (
 	pb "github.com/youtube/vitess/go/vt/proto/automation"
 )
 
+func TestSchedulerImmediateShutdown(t *testing.T) {
+	// Make sure that the scheduler shuts down cleanly when it was instantiated, but not started with Run().
+	scheduler, err := NewScheduler()
+	if err != nil {
+		t.Fatalf("Failed to create scheduler: %v", err)
+	}
+	scheduler.ShutdownAndWait()
+}
+
 func TestEnqueueSingleTask(t *testing.T) {
 	enqueueClusterOperationAndCheckOutput(t, "TestingEchoTask", "echoed text")
 }

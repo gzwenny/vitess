@@ -76,6 +76,10 @@ func (s *Scheduler) Run() {
 	s.state = stateRunning
 	s.mu.Unlock()
 
+	s.startProcessRequestsLoop()
+}
+
+func (s *Scheduler) startProcessRequestsLoop() {
 	s.pendingOpsWg.Add(1)
 	go s.processRequestsLoop()
 }
