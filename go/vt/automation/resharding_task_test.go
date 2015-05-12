@@ -14,7 +14,7 @@ func TestReshardingTaskEmittedTasks(t *testing.T) {
 	reshardingTask := ReshardingTask{}
 
 	newTaskContainers, _, _ := reshardingTask.run(map[string]string{
-		"source_shard_rdonly_list": "rdonly1",
+		"source_shard_rdonly_list": "cell1-0000062352",
 		"source_shard_list":        "test_keyspace/0",
 		"vtworker_endpoint":        "localhost:12345",
 		"dest_shard_list":          "test_keyspace/-80,test_keyspace/80"})
