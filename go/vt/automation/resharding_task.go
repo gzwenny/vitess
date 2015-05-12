@@ -9,32 +9,34 @@ import (
 	"strings"
 
 	pb "github.com/youtube/vitess/go/vt/proto/automation"
+	"github.com/youtube/vitess/go/vt/topo"
 )
 
 // ReshardingTask is a cluster operation which allows to increase the number of shards.
 type ReshardingTask struct {
 }
 
-func splitShardListIntoKeyspaceAndShards(shardsWithKeyspace []string) (string, []string, error) {
-	var keyspace string
-	shards := make([]string, 0, len(shardsWithKeyspace))
+func splitShardListIntoKeyspaceAndShards(keyspaceAndShards []string) (string, []string, error) {
+	var firstKeyspace string
+	shards := make([]string, 0, len(keyspaceAndShards))
 
-	for i, shard := range shardsWithKeyspace {
-		keyspaceAndShard := strings.Split(shard, "/")
-		if len(keyspaceAndShard) != 2 {
-			return "", nil, fmt.Errorf("Invalid shard: %v Required form: keyspace/shard-nr", shard)
+	for i, keyspaceAndShard := range keyspaceAndShards {
+		keyspace, shard, err := topo.ParseKeyspaceShardString(keyspaceAndShard)
+		if err != nil {
+			return "", nil, err
 		}
+
 		if i == 0 {
-			keyspace = keyspaceAndShard[0]
+			firstKeyspace = keyspace
 		} else {
-			if keyspace != keyspaceAndShard[0] {
-				return "", nil, fmt.Errorf("All shards must have the same keyspace. First seen keyspace: %v Wrong shard: %v", keyspace, shard)
+			if firstKeyspace != keyspace {
+				return "", nil, fmt.Errorf("All shards must have the same keyspace. First seen keyspace: %v Wrong shard: %v", firstKeyspace, keyspaceAndShard)
 			}
 		}
-		shards = append(shards, keyspaceAndShard[1])
+		shards = append(shards, shard)
 	}
 
-	return keyspace, shards, nil
+	return firstKeyspace, shards, nil
 }
 
 func selectAnyTabletFromShardByType(shard string, tabletType string) string {
