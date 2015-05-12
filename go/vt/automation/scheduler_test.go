@@ -35,6 +35,9 @@ func enqueueClusterOperationAndCheckOutput(t *testing.T, taskName string, expect
 	if err != nil {
 		t.Fatalf("Failed to create scheduler: %v", err)
 	}
+	scheduler.setTaskCreator(testingTaskCreator)
+	scheduler.registerClusterOperation("TestingEchoTask")
+	scheduler.registerClusterOperation("TestingEmitEchoTask")
 
 	scheduler.Run()
 

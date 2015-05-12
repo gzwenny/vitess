@@ -8,6 +8,33 @@ import (
 	pb "github.com/youtube/vitess/go/vt/proto/automation"
 )
 
+func testingTaskCreator(taskName string) Task {
+	switch taskName {
+	// Tasks for testing only.
+	case "TestingEchoTask":
+		return &TestingEchoTask{}
+	case "TestingEmitEchoTask":
+		return &TestingEmitEchoTask{}
+	default:
+		return nil
+	}
+}
+
+// TestingEchoTask is used only for testing. It returns the join of all parameter values.
+type TestingEchoTask struct {
+}
+
+func (t *TestingEchoTask) run(parameters map[string]string) (newTasks []*pb.TaskContainer, output string, err error) {
+	for _, v := range parameters {
+		output += v
+	}
+	return
+}
+
+func (t *TestingEchoTask) requiredParameters() []string {
+	return []string{"echo_text"}
+}
+
 // TestingEmitEchoTask is used only for testing. It emits a TestingEchoTask.
 type TestingEmitEchoTask struct {
 }

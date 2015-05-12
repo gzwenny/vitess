@@ -27,6 +27,8 @@ const (
 	stateShutdown
 )
 
+type taskCreator func(string) Task
+
 // Scheduler executes automation tasks and maintains the execution state.
 type Scheduler struct {
 	idGenerator IDGenerator
@@ -38,6 +40,10 @@ type Scheduler struct {
 	toBeScheduledClusterOperations chan *ClusterOperationInstance
 	// Guarded by "mu".
 	state schedulerState
+
+	// Guarded by "taskCreatorMu". May be overriden by testing code.
+	taskCreator   taskCreator
+	taskCreatorMu sync.Mutex
 
 	pendingOpsWg *sync.WaitGroup
 
@@ -52,9 +58,6 @@ type Scheduler struct {
 func NewScheduler() (*Scheduler, error) {
 	defaultClusterOperations := map[string]bool{
 		"ReshardingTask": true,
-		// Testing only cluster operations.
-		"TestingEchoTask":     true,
-		"TestingEmitEchoTask": true,
 	}
 
 	s := &Scheduler{
@@ -62,12 +65,20 @@ func NewScheduler() (*Scheduler, error) {
 		idGenerator:                    IDGenerator{},
 		toBeScheduledClusterOperations: make(chan *ClusterOperationInstance, 10),
 		state:                     stateNotRunning,
+		taskCreator:               defaultTaskCreator,
 		pendingOpsWg:              &sync.WaitGroup{},
 		activeClusterOperations:   make(map[string]*ClusterOperationInstance),
 		finishedClusterOperations: make(map[string]*ClusterOperationInstance),
 	}
 
 	return s, nil
+}
+
+func (s *Scheduler) registerClusterOperation(clusterOperationName string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.registeredClusterOperations[clusterOperationName] = true
 }
 
 // Run processes queued cluster operations.
@@ -172,22 +183,36 @@ func (s *Scheduler) processClusterOperation(clusterOp *ClusterOperationInstance)
 	s.muOpList.Unlock()
 }
 
-func (s *Scheduler) createTaskInstance(taskName string) (Task, error) {
+func defaultTaskCreator(taskName string) Task {
 	switch taskName {
 	case "ReshardingTask":
-		return &ReshardingTask{}, nil
+		return &ReshardingTask{}
 	case "vtctl":
-		return &VtctlTask{}, nil
+		return &VtctlTask{}
 	case "vtworker":
-		return &VtworkerTask{}, nil
-	// Tasks for testing only.
-	case "TestingEchoTask":
-		return &TestingEchoTask{}, nil
-	case "TestingEmitEchoTask":
-		return &TestingEmitEchoTask{}, nil
+		return &VtworkerTask{}
 	default:
+		return nil
+	}
+}
+
+func (s *Scheduler) setTaskCreator(creator taskCreator) {
+	s.taskCreatorMu.Lock()
+	defer s.taskCreatorMu.Unlock()
+
+	s.taskCreator = creator
+}
+
+func (s *Scheduler) createTaskInstance(taskName string) (Task, error) {
+	s.taskCreatorMu.Lock()
+	taskCreator := s.taskCreator
+	s.taskCreatorMu.Unlock()
+
+	task := taskCreator(taskName)
+	if task == nil {
 		return nil, fmt.Errorf("No implementation found for: %v", taskName)
 	}
+	return task, nil
 }
 
 // checkClusterOperationForMissingRequiredParameters returns an error if not all required parameters are provided in "taskProto.parameters".
