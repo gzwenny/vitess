@@ -58,25 +58,27 @@ func (t *ReshardingTask) run(parameters map[string]string) ([]*pb.TaskContainer,
 	}
 
 	var newTasks []*pb.TaskContainer
-	reparentTasks := NewTaskContainer()
-	for _, destShard := range destShards {
-		newMaster := selectAnyTabletFromShardByType(destShard, "master")
-		AddTask(reparentTasks, "ForceReparent", map[string]string{
-			"shard":  destShard,
-			"master": newMaster,
-		})
-	}
-	newTasks = append(newTasks, reparentTasks)
+	// TODO(mberlin): Implement "ForceParent" task and uncomment this.
+	//	reparentTasks := NewTaskContainer()
+	//	for _, destShard := range destShards {
+	//		newMaster := selectAnyTabletFromShardByType(destShard, "master")
+	//		AddTask(reparentTasks, "ForceReparent", map[string]string{
+	//			"shard":  destShard,
+	//			"master": newMaster,
+	//		})
+	//	}
+	//	newTasks = append(newTasks, reparentTasks)
 
-	copySchemaTasks := NewTaskContainer()
-	sourceRdonlyTablet := selectAnyTabletFromShardByType(sourceShards[0], "rdonly")
-	for _, destShard := range destShards {
-		AddTask(copySchemaTasks, "CopySchemaShard", map[string]string{
-			"shard":                destShard,
-			"source_rdonly_tablet": sourceRdonlyTablet,
-		})
-	}
-	newTasks = append(newTasks, copySchemaTasks)
+	// TODO(mberlin): Implement "CopySchemaShard" task and uncomment this.
+	//	copySchemaTasks := NewTaskContainer()
+	//	sourceRdonlyTablet := selectAnyTabletFromShardByType(sourceShards[0], "rdonly")
+	//	for _, destShard := range destShards {
+	//		AddTask(copySchemaTasks, "CopySchemaShard", map[string]string{
+	//			"shard":                destShard,
+	//			"source_rdonly_tablet": sourceRdonlyTablet,
+	//		})
+	//	}
+	//	newTasks = append(newTasks, copySchemaTasks)
 
 	splitCloneTasks := NewTaskContainer()
 	for _, sourceShard := range sourceShards {
@@ -110,16 +112,17 @@ func (t *ReshardingTask) run(parameters map[string]string) ([]*pb.TaskContainer,
 	}
 	newTasks = append(newTasks, splitDiffTasks)
 
-	for _, servedType := range []string{"rdonly", "replica", "master"} {
-		migrateServedTypesTasks := NewTaskContainer()
-		for _, sourceShard := range sourceShards {
-			AddTask(migrateServedTypesTasks, "MigrateServedTypes", map[string]string{
-				"shard":       sourceShard,
-				"served_type": servedType,
-			})
-		}
-		newTasks = append(newTasks, migrateServedTypesTasks)
-	}
+	// TODO(mberlin): Implement "CopySchemaShard" task and uncomment this.
+	//	for _, servedType := range []string{"rdonly", "replica", "master"} {
+	//		migrateServedTypesTasks := NewTaskContainer()
+	//		for _, sourceShard := range sourceShards {
+	//			AddTask(migrateServedTypesTasks, "MigrateServedTypes", map[string]string{
+	//				"shard":       sourceShard,
+	//				"served_type": servedType,
+	//			})
+	//		}
+	//		newTasks = append(newTasks, migrateServedTypesTasks)
+	//	}
 
 	return newTasks, "", nil
 }
