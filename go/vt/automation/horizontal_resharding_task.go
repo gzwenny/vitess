@@ -12,8 +12,8 @@ import (
 	"github.com/youtube/vitess/go/vt/topo"
 )
 
-// ReshardingTask is a cluster operation which allows to increase the number of shards.
-type ReshardingTask struct {
+// HorizontalReshardingTask is a cluster operation which allows to increase the number of shards.
+type HorizontalReshardingTask struct {
 }
 
 func splitShardListIntoKeyspaceAndShards(keyspaceAndShards []string) (string, []string, error) {
@@ -43,7 +43,7 @@ func selectAnyTabletFromShardByType(shard string, tabletType string) string {
 	return ""
 }
 
-func (t *ReshardingTask) run(parameters map[string]string) ([]*pb.TaskContainer, string, error) {
+func (t *HorizontalReshardingTask) run(parameters map[string]string) ([]*pb.TaskContainer, string, error) {
 	sourceShardsWithKeyspace := strings.Split(parameters["source_shard_list"], ",")
 	sourceRdonlyTablets := strings.Split(parameters["source_shard_rdonly_list"], ",")
 
@@ -127,6 +127,6 @@ func (t *ReshardingTask) run(parameters map[string]string) ([]*pb.TaskContainer,
 	return newTasks, "", nil
 }
 
-func (t *ReshardingTask) requiredParameters() []string {
+func (t *HorizontalReshardingTask) requiredParameters() []string {
 	return []string{"source_shard_list", "source_shard_rdonly_list", "dest_shard_list"}
 }

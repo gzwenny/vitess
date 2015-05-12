@@ -57,7 +57,7 @@ type Scheduler struct {
 // NewScheduler creates a new instance.
 func NewScheduler() (*Scheduler, error) {
 	defaultClusterOperations := map[string]bool{
-		"ReshardingTask": true,
+		"HorizontalReshardingTask": true,
 	}
 
 	s := &Scheduler{
@@ -185,8 +185,8 @@ func (s *Scheduler) processClusterOperation(clusterOp *ClusterOperationInstance)
 
 func defaultTaskCreator(taskName string) Task {
 	switch taskName {
-	case "ReshardingTask":
-		return &ReshardingTask{}
+	case "HorizontalReshardingTask":
+		return &HorizontalReshardingTask{}
 	case "vtctl":
 		return &VtctlTask{}
 	case "vtworker":

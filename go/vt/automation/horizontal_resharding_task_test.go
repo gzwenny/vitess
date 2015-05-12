@@ -10,8 +10,8 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-func TestReshardingTaskEmittedTasks(t *testing.T) {
-	reshardingTask := ReshardingTask{}
+func TestHorizontalReshardingTaskEmittedTasks(t *testing.T) {
+	reshardingTask := HorizontalReshardingTask{}
 
 	newTaskContainers, _, _ := reshardingTask.run(map[string]string{
 		"source_shard_rdonly_list": "cell1-0000062352",
