@@ -16,7 +16,7 @@ import (
 )
 
 // VtworkerTask triggers an action on a running vtworker process using the HTTP server and waits until the process has finished.
-// TODO(mberlin): Add an RPC interface at vtworker and use that instead.
+// TODO(mberlin): Instead of communicating with the HTTP server, use for example the lock server to enqueue jobs against a pool of vtworker.
 type VtworkerTask struct {
 }
 
