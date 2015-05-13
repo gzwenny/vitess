@@ -9,34 +9,10 @@ import (
 	"strings"
 
 	pb "github.com/youtube/vitess/go/vt/proto/automation"
-	"github.com/youtube/vitess/go/vt/topo"
 )
 
 // HorizontalReshardingTask is a cluster operation which allows to increase the number of shards.
 type HorizontalReshardingTask struct {
-}
-
-func splitShardListIntoKeyspaceAndShards(keyspaceAndShards []string) (string, []string, error) {
-	var firstKeyspace string
-	shards := make([]string, 0, len(keyspaceAndShards))
-
-	for i, keyspaceAndShard := range keyspaceAndShards {
-		keyspace, shard, err := topo.ParseKeyspaceShardString(keyspaceAndShard)
-		if err != nil {
-			return "", nil, err
-		}
-
-		if i == 0 {
-			firstKeyspace = keyspace
-		} else {
-			if firstKeyspace != keyspace {
-				return "", nil, fmt.Errorf("All shards must have the same keyspace. First seen keyspace: %v Wrong shard: %v", firstKeyspace, keyspaceAndShard)
-			}
-		}
-		shards = append(shards, shard)
-	}
-
-	return firstKeyspace, shards, nil
 }
 
 func selectAnyTabletFromShardByType(shard string, tabletType string) string {
@@ -44,18 +20,14 @@ func selectAnyTabletFromShardByType(shard string, tabletType string) string {
 }
 
 func (t *HorizontalReshardingTask) run(parameters map[string]string) ([]*pb.TaskContainer, string, error) {
-	sourceShardsWithKeyspace := strings.Split(parameters["source_shard_list"], ",")
+	// Example: test_keyspace
+	keyspace := parameters["keyspace"]
+	// Example: 10-20
+	sourceShards := strings.Split(parameters["source_shard_list"], ",")
+	// Example: 10-18,18-20
+	destShards := strings.Split(parameters["dest_shard_list"], ",")
+	// Example: cell1-0000062352
 	sourceRdonlyTablets := strings.Split(parameters["source_shard_rdonly_list"], ",")
-
-	keyspace, sourceShards, err := splitShardListIntoKeyspaceAndShards(sourceShardsWithKeyspace)
-	if err != nil {
-		return nil, "", err
-	}
-	destShardsWithKeyspace := strings.Split(parameters["dest_shard_list"], ",")
-	keyspaceDest, destShards, err := splitShardListIntoKeyspaceAndShards(destShardsWithKeyspace)
-	if keyspace != keyspaceDest {
-		return nil, "", fmt.Errorf("Source and Destination keyspace are not equal. Source: %v Dest: %v", keyspace, keyspaceDest)
-	}
 
 	var newTasks []*pb.TaskContainer
 	// TODO(mberlin): Implement "ForceParent" task and uncomment this.
@@ -128,5 +100,5 @@ func (t *HorizontalReshardingTask) run(parameters map[string]string) ([]*pb.Task
 }
 
 func (t *HorizontalReshardingTask) requiredParameters() []string {
-	return []string{"source_shard_list", "source_shard_rdonly_list", "dest_shard_list"}
+	return []string{"keyspace", "source_shard_list", "source_shard_rdonly_list", "dest_shard_list"}
 }

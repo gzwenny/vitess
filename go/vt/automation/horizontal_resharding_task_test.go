@@ -15,9 +15,11 @@ func TestHorizontalReshardingTaskEmittedTasks(t *testing.T) {
 
 	newTaskContainers, _, _ := reshardingTask.run(map[string]string{
 		"source_shard_rdonly_list": "cell1-0000062352",
-		"source_shard_list":        "test_keyspace/0",
+		"keyspace":                 "test_keyspace",
+		"source_shard_list":        "10-20",
+		"dest_shard_list":          "10-18,18-20",
 		"vtworker_endpoint":        "localhost:12345",
-		"dest_shard_list":          "test_keyspace/-80,test_keyspace/80"})
+	})
 
 	// TODO(mberlin): Check emitted tasks against expected output.
 	for _, tc := range newTaskContainers {
