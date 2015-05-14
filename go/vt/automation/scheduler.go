@@ -91,6 +91,8 @@ func (s *Scheduler) Run() {
 }
 
 func (s *Scheduler) startProcessRequestsLoop() {
+	// Use a WaitGroup instead of just a done channel, because we want
+	// to be able to shut down the scheduler even if Run() was never executed.
 	s.pendingOpsWg.Add(1)
 	go s.processRequestsLoop()
 }
