@@ -89,6 +89,7 @@ func (t *HorizontalReshardingTask) run(parameters map[string]string) ([]*pb.Task
 	//		migrateServedTypesTasks := NewTaskContainer()
 	//		for _, sourceShard := range sourceShards {
 	//			AddTask(migrateServedTypesTasks, "MigrateServedTypes", map[string]string{
+	//				"keyspace":    keyspace,
 	//				"shard":       sourceShard,
 	//				"served_type": servedType,
 	//			})
