@@ -141,3 +141,110 @@ func TestFailedTaskFailsClusterOperation(t *testing.T) {
 
 	scheduler.ShutdownAndWait()
 }
+
+func TestEnqueueFailsDueToUnregisteredClusterOperation(t *testing.T) {
+	scheduler, err := NewScheduler()
+	if err != nil {
+		t.Fatalf("Failed to create scheduler: %v", err)
+	}
+	scheduler.setTaskCreator(testingTaskCreator)
+
+	scheduler.Run()
+
+	enqueueRequest := &pb.EnqueueClusterOperationRequest{
+		Name: "TestingEchoTask",
+		Parameters: map[string]string{
+			"unrelevant-parameter": "value",
+		},
+	}
+	enqueueResponse, err := scheduler.EnqueueClusterOperation(context.TODO(), enqueueRequest)
+
+	if err == nil {
+		t.Fatalf("Scheduler should have failed to start cluster operation because not all required parameters were provided. Request: %v Error: %v Response: %v", enqueueRequest, err, enqueueResponse)
+	}
+	want := "No ClusterOperation with name: TestingEchoTask is registered"
+	if err.Error() != want {
+		t.Fatalf("Wrong error message. got: '%v' want: '%v'", err, want)
+	}
+
+	scheduler.ShutdownAndWait()
+}
+
+func TestGetDetailsFailsUnknownId(t *testing.T) {
+	scheduler, err := NewScheduler()
+	if err != nil {
+		t.Fatalf("Failed to create scheduler: %v", err)
+	}
+
+	getDetailsRequest := &pb.GetClusterOperationDetailsRequest{
+		Id: "-1", // There will never be a ClusterOperation with this id.
+	}
+
+	getDetailsResponse, errGet := scheduler.GetClusterOperationDetails(context.TODO(), getDetailsRequest)
+	if errGet == nil {
+		t.Fatalf("Did not fail to get details for invalid ClusterOperation id. Request: %v Response: %v Error: %v", getDetailsRequest, getDetailsResponse, errGet)
+	}
+	want := "ClusterOperation with id: -1 not found"
+	if errGet.Error() != want {
+		t.Fatalf("Wrong error message. got: '%v' want: '%v'", err, want)
+	}
+}
+
+func TestEnqueueFailsBecauseTaskInstanceCannotBeCreated(t *testing.T) {
+	scheduler, err := NewScheduler()
+	if err != nil {
+		t.Fatalf("Failed to create scheduler: %v", err)
+	}
+	// TestingEchoTask is registered as cluster operation, but its task cannot be instantied because "testingTaskCreator" was not set.
+	scheduler.registerClusterOperation("TestingEchoTask")
+
+	scheduler.Run()
+
+	enqueueRequest := &pb.EnqueueClusterOperationRequest{
+		Name: "TestingEchoTask",
+		Parameters: map[string]string{
+			"unrelevant-parameter": "value",
+		},
+	}
+	enqueueResponse, err := scheduler.EnqueueClusterOperation(context.TODO(), enqueueRequest)
+
+	if err == nil {
+		t.Fatalf("Scheduler should have failed to start cluster operation because the task could not be instantiated. Request: %v Error: %v Response: %v", enqueueRequest, err, enqueueResponse)
+	}
+	want := "No implementation found for: TestingEchoTask"
+	if err.Error() != want {
+		t.Fatalf("Wrong error message. got: '%v' want: '%v'", err, want)
+	}
+
+	scheduler.ShutdownAndWait()
+}
+
+func TestTaskEmitsTaskWhichCannotBeInstantiated(t *testing.T) {
+	scheduler, err := NewScheduler()
+	if err != nil {
+		t.Fatalf("Failed to create scheduler: %v", err)
+	}
+	scheduler.setTaskCreator(func(taskName string) Task {
+		switch taskName {
+		case "TestingEmitEchoTask":
+			return &TestingEmitEchoTask{}
+		default:
+			return nil
+		}
+	})
+	scheduler.registerClusterOperation("TestingEmitEchoTask")
+
+	scheduler.Run()
+
+	enqueueRequest := &pb.EnqueueClusterOperationRequest{
+		Name: "TestingEmitEchoTask",
+	}
+	enqueueResponse, err := scheduler.EnqueueClusterOperation(context.TODO(), enqueueRequest)
+
+	details := waitForClusterOperation(t, scheduler, enqueueResponse.Id, "emitted TestingEchoTask", "No implementation found for: TestingEchoTask")
+	if len(details.SerialTasks) != 1 {
+		t.Errorf("A task has been emitted, but it shouldn't. Details:\n%v", proto.MarshalTextString(details))
+	}
+
+	scheduler.ShutdownAndWait()
+}
