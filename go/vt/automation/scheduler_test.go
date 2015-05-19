@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	context "golang.org/x/net/context"
 
 	pb "github.com/youtube/vitess/go/vt/proto/automation"
@@ -52,9 +53,20 @@ func enqueueClusterOperationAndCheckOutput(t *testing.T, taskName string, expect
 		t.Fatalf("Failed to start cluster operation. Request: %v Error: %v", enqueueRequest, err)
 	}
 
-	getDetailsRequest := &pb.GetClusterOperationDetailsRequest{
-		Id: enqueueResponse.Id,
+	waitForClusterOperation(t, scheduler, enqueueResponse.Id, expectedOutput, "")
+
+	scheduler.ShutdownAndWait()
+}
+
+func waitForClusterOperation(t *testing.T, scheduler *Scheduler, id string, expectedOutputLastTask string, expectedErrorLastTask string) *pb.ClusterOperation {
+	if expectedOutputLastTask == "" && expectedErrorLastTask == "" {
+		t.Fatal("Error in test: Cannot wait for an operation where both output and error are expected to be empty.")
 	}
+
+	getDetailsRequest := &pb.GetClusterOperationDetailsRequest{
+		Id: id,
+	}
+
 	for {
 		getDetailsResponse, err := scheduler.GetClusterOperationDetails(context.TODO(), getDetailsRequest)
 		if err != nil {
@@ -63,17 +75,22 @@ func enqueueClusterOperationAndCheckOutput(t *testing.T, taskName string, expect
 		if getDetailsResponse.ClusterOp.State == pb.ClusterOperationState_CLUSTER_OPERATION_DONE {
 			tc := getDetailsResponse.ClusterOp.SerialTasks
 			lastTc := tc[len(tc)-1]
-			if lastTc.ParallelTasks[len(lastTc.ParallelTasks)-1].Output != expectedOutput {
-				t.Fatalf("ClusterOperation finished but did not return expected output. Full ClusterOperation details: %v", getDetailsResponse.ClusterOp)
+			if expectedOutputLastTask != "" {
+				if lastTc.ParallelTasks[len(lastTc.ParallelTasks)-1].Output != expectedOutputLastTask {
+					t.Fatalf("ClusterOperation finished but did not return expected output. want: %v Full ClusterOperation details: %v", expectedOutputLastTask, proto.MarshalTextString(getDetailsResponse.ClusterOp))
+				}
 			}
-			break
-		} else {
-			t.Logf("Waiting for clusterOp: %v", getDetailsResponse.ClusterOp)
-			time.Sleep(5 * time.Millisecond)
+			if expectedErrorLastTask != "" {
+				if lastTc.ParallelTasks[len(lastTc.ParallelTasks)-1].Error != expectedErrorLastTask {
+					t.Fatalf("ClusterOperation finished but did not return expected error. Full ClusterOperation details: %v", getDetailsResponse.ClusterOp)
+				}
+			}
+			return getDetailsResponse.ClusterOp
 		}
-	}
 
-	scheduler.ShutdownAndWait()
+		t.Logf("Waiting for clusterOp: %v", getDetailsResponse.ClusterOp)
+		time.Sleep(5 * time.Millisecond)
+	}
 }
 
 func TestEnqueueFailsDueToMissingParameter(t *testing.T) {
@@ -93,6 +110,7 @@ func TestEnqueueFailsDueToMissingParameter(t *testing.T) {
 		},
 	}
 	enqueueResponse, err := scheduler.EnqueueClusterOperation(context.TODO(), enqueueRequest)
+
 	if err == nil {
 		t.Fatalf("Scheduler should have failed to start cluster operation because not all required parameters were provided. Request: %v Error: %v Response: %v", enqueueRequest, err, enqueueResponse)
 	}
