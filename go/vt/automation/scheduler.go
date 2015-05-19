@@ -162,9 +162,11 @@ func (s *Scheduler) processClusterOperation(clusterOp *ClusterOperationInstance)
 					}
 				}
 
-				clusterOp.InsertTaskContainers(newTaskContainers, i+1)
-				log.Infof("ClusterOperation: %v %d new task containers added by %v (%v/%v). Updated ClusterOperation: %v",
-					clusterOp.Id, len(newTaskContainers), taskProto.Name, clusterOp.Id, taskProto.Id, clusterOp)
+				if lastTaskError == "" {
+					clusterOp.InsertTaskContainers(newTaskContainers, i+1)
+					log.Infof("ClusterOperation: %v %d new task containers added by %v (%v/%v). Updated ClusterOperation: %v",
+						clusterOp.Id, len(newTaskContainers), taskProto.Name, clusterOp.Id, taskProto.Id, clusterOp)
+				}
 			}
 		}
 	}
@@ -245,7 +247,7 @@ func (s *Scheduler) EnqueueClusterOperation(ctx context.Context, req *pb.Enqueue
 	}
 
 	if s.registeredClusterOperations[req.Name] != true {
-		return nil, fmt.Errorf("No ClusterOperation with name: %v is registered.", req.Name)
+		return nil, fmt.Errorf("No ClusterOperation with name: %v is registered", req.Name)
 	}
 
 	err := s.validateTaskSpecification(req.Name, req.Parameters)
