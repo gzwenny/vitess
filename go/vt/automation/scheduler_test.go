@@ -96,7 +96,7 @@ func TestEnqueueFailsDueToMissingParameter(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Scheduler should have failed to start cluster operation because not all required parameters were provided. Request: %v Error: %v Response: %v", enqueueRequest, err, enqueueResponse)
 	}
-	want := "Parameter echo_text is required, but not provided."
+	want := "Parameter echo_text is required, but not provided"
 	if err.Error() != want {
 		t.Fatalf("Wrong error message. got: '%v' want: '%v'", err, want)
 	}

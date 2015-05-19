@@ -224,7 +224,7 @@ func (s *Scheduler) checkMissingRequiredParameters(taskProto *pb.Task) error {
 
 	for _, requiredParameter := range task.requiredParameters() {
 		if _, ok := taskProto.Parameters[requiredParameter]; !ok {
-			return fmt.Errorf("Parameter %v is required, but not provided.", requiredParameter)
+			return fmt.Errorf("Parameter %v is required, but not provided", requiredParameter)
 		}
 	}
 	return nil
@@ -274,7 +274,7 @@ func (s *Scheduler) findClusterOp(id string) (*ClusterOperationInstance, error) 
 		clusterOp, ok = s.finishedClusterOperations[id]
 	}
 	if !ok {
-		return nil, fmt.Errorf("ClusterOperation with id: %v not found.", id)
+		return nil, fmt.Errorf("ClusterOperation with id: %v not found", id)
 	}
 	return clusterOp, nil
 }
