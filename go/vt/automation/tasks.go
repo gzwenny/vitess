@@ -17,8 +17,9 @@ func MarkTaskSucceeded(t *pb.Task, output string) {
 }
 
 // MarkTaskFailed marks the task as failed.
-func MarkTaskFailed(t *pb.Task, err error) {
+func MarkTaskFailed(t *pb.Task, output string, err error) {
 	t.State = pb.TaskState_DONE
+	t.Output = output
 	t.Error = err.Error()
 }
 

@@ -103,3 +103,23 @@ func TestEnqueueFailsDueToMissingParameter(t *testing.T) {
 
 	scheduler.ShutdownAndWait()
 }
+
+func TestFailedTaskFailsClusterOperation(t *testing.T) {
+	scheduler, err := NewScheduler()
+	if err != nil {
+		t.Fatalf("Failed to create scheduler: %v", err)
+	}
+	scheduler.setTaskCreator(testingTaskCreator)
+	scheduler.registerClusterOperation("TestingFailTask")
+
+	scheduler.Run()
+
+	enqueueRequest := &pb.EnqueueClusterOperationRequest{
+		Name: "TestingFailTask",
+	}
+	enqueueResponse, err := scheduler.EnqueueClusterOperation(context.TODO(), enqueueRequest)
+
+	waitForClusterOperation(t, scheduler, enqueueResponse.Id, "something went wrong", "full error message")
+
+	scheduler.ShutdownAndWait()
+}

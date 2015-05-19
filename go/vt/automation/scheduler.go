@@ -131,7 +131,7 @@ func (s *Scheduler) processClusterOperation(clusterOp *ClusterOperationInstance)
 			task, err := s.createTaskInstance(taskProto.Name)
 			if err != nil {
 				log.Errorf("Task: %v (%v/%v) could not be instantiated. Error: %v Details: %v", taskProto.Name, clusterOp.Id, taskProto.Id, err, taskProto)
-				MarkTaskFailed(taskProto, err)
+				MarkTaskFailed(taskProto, "", err)
 				lastTaskError = err.Error()
 				break
 			}
@@ -142,7 +142,7 @@ func (s *Scheduler) processClusterOperation(clusterOp *ClusterOperationInstance)
 			log.Infof("Task: %v (%v/%v) finished. newTaskContainers: %v, output: %v, error: %v", taskProto.Name, clusterOp.Id, taskProto.Id, newTaskContainers, output, errRun)
 
 			if errRun != nil {
-				MarkTaskFailed(taskProto, errRun)
+				MarkTaskFailed(taskProto, output, errRun)
 				lastTaskError = errRun.Error()
 				break
 			}

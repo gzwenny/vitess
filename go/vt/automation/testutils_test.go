@@ -5,6 +5,8 @@
 package automation
 
 import (
+	"errors"
+
 	pb "github.com/youtube/vitess/go/vt/proto/automation"
 )
 
@@ -15,6 +17,8 @@ func testingTaskCreator(taskName string) Task {
 		return &TestingEchoTask{}
 	case "TestingEmitEchoTask":
 		return &TestingEmitEchoTask{}
+	case "TestingFailTask":
+		return &TestingFailTask{}
 	default:
 		return nil
 	}
@@ -46,5 +50,17 @@ func (t *TestingEmitEchoTask) run(parameters map[string]string) (newTasks []*pb.
 }
 
 func (t *TestingEmitEchoTask) requiredParameters() []string {
+	return []string{}
+}
+
+// TestingFailTask is used only for testing. It always fails.
+type TestingFailTask struct {
+}
+
+func (t *TestingFailTask) run(parameters map[string]string) (newTasks []*pb.TaskContainer, output string, err error) {
+	return nil, "something went wrong", errors.New("full error message")
+}
+
+func (t *TestingFailTask) requiredParameters() []string {
 	return []string{}
 }
