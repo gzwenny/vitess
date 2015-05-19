@@ -15,9 +15,10 @@ import (
 type HorizontalReshardingTask struct {
 }
 
-func selectAnyTabletFromShardByType(shard string, tabletType string) string {
-	return ""
-}
+// TODO(mberlin): Uncomment/remove when "ForceReparent" and "CopySchemaShard" will be implemented.
+//func selectAnyTabletFromShardByType(shard string, tabletType string) string {
+//	return ""
+//}
 
 func (t *HorizontalReshardingTask) run(parameters map[string]string) ([]*pb.TaskContainer, string, error) {
 	// Example: test_keyspace
