@@ -279,17 +279,6 @@ func (s *Scheduler) findClusterOp(id string) (*ClusterOperationInstance, error) 
 	return clusterOp, nil
 }
 
-// GetClusterOperationState can be used to query the state of active or finished operations.
-func (s *Scheduler) GetClusterOperationState(ctx context.Context, req *pb.GetClusterOperationStateRequest) (*pb.GetClusterOperationStateResponse, error) {
-	clusterOp, err := s.findClusterOp(req.Id)
-	if err != nil {
-		return nil, err
-	}
-	return &pb.GetClusterOperationStateResponse{
-		State: clusterOp.State,
-	}, nil
-}
-
 // GetClusterOperationDetails can be used to query the full details of active or finished operations.
 func (s *Scheduler) GetClusterOperationDetails(ctx context.Context, req *pb.GetClusterOperationDetailsRequest) (*pb.GetClusterOperationDetailsResponse, error) {
 	clusterOp, err := s.findClusterOp(req.Id)

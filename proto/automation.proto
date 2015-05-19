@@ -83,9 +83,7 @@ service Automation {
   // Start a cluster operation.
   rpc EnqueueClusterOperation(EnqueueClusterOperationRequest) returns (EnqueueClusterOperationResponse) {};
 
-  // Get the current state of a given active cluster operation.
   // TODO(mberlin): Polling this is bad. Implement a subscribe mechanism to wait for changes?
-  rpc GetClusterOperationState(GetClusterOperationStateRequest) returns (GetClusterOperationStateResponse) {};
   // Get all details of an active cluster operation.
   rpc GetClusterOperationDetails(GetClusterOperationDetailsRequest) returns (GetClusterOperationDetailsResponse) {};
 }

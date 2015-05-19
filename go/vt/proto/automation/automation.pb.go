@@ -225,9 +225,7 @@ func init() {
 type AutomationClient interface {
 	// Start a cluster operation.
 	EnqueueClusterOperation(ctx context.Context, in *EnqueueClusterOperationRequest, opts ...grpc.CallOption) (*EnqueueClusterOperationResponse, error)
-	// Get the current state of a given active cluster operation.
 	// TODO(mberlin): Polling this is bad. Implement a subscribe mechanism to wait for changes?
-	GetClusterOperationState(ctx context.Context, in *GetClusterOperationStateRequest, opts ...grpc.CallOption) (*GetClusterOperationStateResponse, error)
 	// Get all details of an active cluster operation.
 	GetClusterOperationDetails(ctx context.Context, in *GetClusterOperationDetailsRequest, opts ...grpc.CallOption) (*GetClusterOperationDetailsResponse, error)
 }
@@ -249,15 +247,6 @@ func (c *automationClient) EnqueueClusterOperation(ctx context.Context, in *Enqu
 	return out, nil
 }
 
-func (c *automationClient) GetClusterOperationState(ctx context.Context, in *GetClusterOperationStateRequest, opts ...grpc.CallOption) (*GetClusterOperationStateResponse, error) {
-	out := new(GetClusterOperationStateResponse)
-	err := grpc.Invoke(ctx, "/automation.Automation/GetClusterOperationState", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *automationClient) GetClusterOperationDetails(ctx context.Context, in *GetClusterOperationDetailsRequest, opts ...grpc.CallOption) (*GetClusterOperationDetailsResponse, error) {
 	out := new(GetClusterOperationDetailsResponse)
 	err := grpc.Invoke(ctx, "/automation.Automation/GetClusterOperationDetails", in, out, c.cc, opts...)
@@ -272,9 +261,7 @@ func (c *automationClient) GetClusterOperationDetails(ctx context.Context, in *G
 type AutomationServer interface {
 	// Start a cluster operation.
 	EnqueueClusterOperation(context.Context, *EnqueueClusterOperationRequest) (*EnqueueClusterOperationResponse, error)
-	// Get the current state of a given active cluster operation.
 	// TODO(mberlin): Polling this is bad. Implement a subscribe mechanism to wait for changes?
-	GetClusterOperationState(context.Context, *GetClusterOperationStateRequest) (*GetClusterOperationStateResponse, error)
 	// Get all details of an active cluster operation.
 	GetClusterOperationDetails(context.Context, *GetClusterOperationDetailsRequest) (*GetClusterOperationDetailsResponse, error)
 }
@@ -289,18 +276,6 @@ func _Automation_EnqueueClusterOperation_Handler(srv interface{}, ctx context.Co
 		return nil, err
 	}
 	out, err := srv.(AutomationServer).EnqueueClusterOperation(ctx, in)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func _Automation_GetClusterOperationState_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
-	in := new(GetClusterOperationStateRequest)
-	if err := codec.Unmarshal(buf, in); err != nil {
-		return nil, err
-	}
-	out, err := srv.(AutomationServer).GetClusterOperationState(ctx, in)
 	if err != nil {
 		return nil, err
 	}
@@ -326,10 +301,6 @@ var _Automation_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "EnqueueClusterOperation",
 			Handler:    _Automation_EnqueueClusterOperation_Handler,
-		},
-		{
-			MethodName: "GetClusterOperationState",
-			Handler:    _Automation_GetClusterOperationState_Handler,
 		},
 		{
 			MethodName: "GetClusterOperationDetails",
