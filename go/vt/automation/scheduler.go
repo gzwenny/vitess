@@ -189,10 +189,6 @@ func defaultTaskCreator(taskName string) Task {
 	switch taskName {
 	case "HorizontalReshardingTask":
 		return &HorizontalReshardingTask{}
-	case "vtctl":
-		return &VtctlTask{}
-	case "vtworker":
-		return &VtworkerTask{}
 	default:
 		return nil
 	}
