@@ -152,11 +152,11 @@ func (s *Scheduler) processClusterOperation(clusterOp *ClusterOperationInstance)
 				// Make sure all new tasks do not miss any required parameters.
 				for _, newTaskContainer := range newTaskContainers {
 					for _, newTaskProto := range newTaskContainer.ParallelTasks {
-						errCheckParams := s.checkMissingRequiredParameters(newTaskProto)
-						if errCheckParams != nil {
-							log.Errorf("Task: %v (%v/%v) emitted a new task which did not fill in all required parameters. Error: %v Details: %v", taskProto.Name, clusterOp.Id, taskProto.Id, errCheckParams, newTaskProto)
-							MarkTaskFailed(taskProto, errCheckParams)
-							lastTaskError = errCheckParams.Error()
+						err := s.validateTaskSpecification(newTaskProto.Name, newTaskProto.Parameters)
+						if err != nil {
+							log.Errorf("Task: %v (%v/%v) emitted a new task which is not valid. Error: %v Details: %v", taskProto.Name, clusterOp.Id, taskProto.Id, err, newTaskProto)
+							MarkTaskFailed(taskProto, output, err)
+							lastTaskError = err.Error()
 							break
 						}
 					}
@@ -201,6 +201,18 @@ func (s *Scheduler) setTaskCreator(creator taskCreator) {
 	s.taskCreator = creator
 }
 
+func (s *Scheduler) validateTaskSpecification(taskName string, parameters map[string]string) error {
+	taskInstanceForParametersCheck, err := s.createTaskInstance(taskName)
+	if err != nil {
+		return err
+	}
+	errParameters := checkRequiredParameters(taskInstanceForParametersCheck, parameters)
+	if errParameters != nil {
+		return errParameters
+	}
+	return nil
+}
+
 func (s *Scheduler) createTaskInstance(taskName string) (Task, error) {
 	s.taskCreatorMu.Lock()
 	taskCreator := s.taskCreator
@@ -213,17 +225,10 @@ func (s *Scheduler) createTaskInstance(taskName string) (Task, error) {
 	return task, nil
 }
 
-// checkClusterOperationForMissingRequiredParameters returns an error if not all required parameters are provided in "taskProto.parameters".
-func (s *Scheduler) checkMissingRequiredParameters(taskProto *pb.Task) error {
-	// Create an instance of the task to find out the required parameters.
-	task, err := s.createTaskInstance(taskProto.Name)
-	if err != nil {
-		log.Errorf("Task: %v could not be instantiated for finding out its required parameters. Error: %v Details: %v", taskProto.Name, err, taskProto)
-		return err
-	}
-
+// checkRequiredParameters returns an error if not all required parameters are provided in "parameters".
+func checkRequiredParameters(task Task, parameters map[string]string) error {
 	for _, requiredParameter := range task.requiredParameters() {
-		if _, ok := taskProto.Parameters[requiredParameter]; !ok {
+		if _, ok := parameters[requiredParameter]; !ok {
 			return fmt.Errorf("Parameter %v is required, but not provided", requiredParameter)
 		}
 	}
@@ -243,13 +248,14 @@ func (s *Scheduler) EnqueueClusterOperation(ctx context.Context, req *pb.Enqueue
 		return nil, fmt.Errorf("No ClusterOperation with name: %v is registered.", req.Name)
 	}
 
-	clusterOpID := s.idGenerator.GetNextID()
-	taskIDGenerator := IDGenerator{}
-	initialTask := NewTaskContainerWithSingleTask(req.Name, req.Parameters)
-	err := s.checkMissingRequiredParameters(initialTask.ParallelTasks[0])
+	err := s.validateTaskSpecification(req.Name, req.Parameters)
 	if err != nil {
 		return nil, err
 	}
+
+	clusterOpID := s.idGenerator.GetNextID()
+	taskIDGenerator := IDGenerator{}
+	initialTask := NewTaskContainerWithSingleTask(req.Name, req.Parameters)
 	clusterOp := NewClusterOperationInstance(clusterOpID, initialTask, &taskIDGenerator)
 
 	s.muOpList.Lock()
